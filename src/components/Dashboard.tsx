@@ -28,9 +28,7 @@ export function Dashboard() {
                 <h2 className="font-semibold text-red-800 dark:text-red-300">
                   Failed to load portfolio
                 </h2>
-                <p className="mt-1 text-sm text-red-700 dark:text-red-400">
-                  {error}
-                </p>
+                <p className="mt-1 text-sm text-red-700 dark:text-red-400">{error}</p>
                 <button
                   type="button"
                   onClick={() => void refreshPortfolio()}

@@ -78,10 +78,7 @@ function sortTransactions(transactions: Transaction[]): Transaction[] {
   });
 }
 
-function deriveStartingCash(
-  currentCash: number,
-  transactions: Transaction[],
-): number {
+function deriveStartingCash(currentCash: number, transactions: Transaction[]): number {
   const netCashFlow = transactions.reduce((sum, tx) => {
     return tx.type === "BUY" ? sum - tx.totalAmount : sum + tx.totalAmount;
   }, 0);

@@ -139,8 +139,9 @@ export function TradeForm() {
                 <>
                   {" "}
                   · ≈{" "}
-                  {((Number(amount) / displayQuote.price).toFixed(4).replace(/\.?0+$/, "") ||
-                    "0")}{" "}
+                  {(Number(amount) / displayQuote.price)
+                    .toFixed(4)
+                    .replace(/\.?0+$/, "") || "0"}{" "}
                   shares for {formatCurrency(Number(amount))}
                 </>
               )}
@@ -151,8 +152,8 @@ export function TradeForm() {
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <p>
                 Alpha Vantage rate limit reached. Using fallback test price of{" "}
-                {formatCurrency(FALLBACK_MOCK_PRICE_EUR)} so you can still test
-                BUY/SELL and database updates.
+                {formatCurrency(FALLBACK_MOCK_PRICE_EUR)} so you can still test BUY/SELL
+                and database updates.
               </p>
             </div>
           )}

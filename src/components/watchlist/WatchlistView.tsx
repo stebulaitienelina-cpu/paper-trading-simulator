@@ -62,9 +62,7 @@ export function WatchlistView() {
       setItems(nextItems);
       await loadPrices(nextItems.map((item) => item.stockSymbol));
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load watchlist.",
-      );
+      setError(err instanceof Error ? err.message : "Failed to load watchlist.");
     } finally {
       setIsLoading(false);
     }

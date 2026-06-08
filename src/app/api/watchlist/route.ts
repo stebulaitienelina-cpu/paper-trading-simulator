@@ -38,9 +38,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     const message =
-      error instanceof Error
-        ? error.message
-        : "Failed to remove from watchlist.";
+      error instanceof Error ? error.message : "Failed to remove from watchlist.";
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

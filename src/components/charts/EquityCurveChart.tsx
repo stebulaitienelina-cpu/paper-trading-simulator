@@ -1,14 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { EquityPoint } from "@/lib/charts/portfolioAnalytics";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -21,8 +14,7 @@ export function EquityCurveChart({ data }: EquityCurveChartProps) {
     () =>
       data.map((point) => ({
         ...point,
-        displayDate:
-          point.label === "Today" ? "Today" : formatDate(point.date),
+        displayDate: point.label === "Today" ? "Today" : formatDate(point.date),
       })),
     [data],
   );

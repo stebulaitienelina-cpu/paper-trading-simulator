@@ -6,12 +6,6 @@ export type SimulationMode = "present" | "simulated";
 
 export type AmountMode = "eur" | "shares";
 
-export interface StockQuote {
-  symbol: string;
-  name: string;
-  price: number;
-}
-
 export interface LiveStockQuote {
   symbol: string;
   price: number;

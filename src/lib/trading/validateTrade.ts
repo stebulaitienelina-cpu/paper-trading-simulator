@@ -24,9 +24,7 @@ export interface ValidatedTrade {
   simulatedDate: string;
 }
 
-function validateTradeFields(
-  body: Partial<TradeRequestBody>,
-):
+function validateTradeFields(body: Partial<TradeRequestBody>):
   | {
       success: true;
       symbol: string;
@@ -86,14 +84,8 @@ export async function validateTradeInput(
     return validation;
   }
 
-  const {
-    symbol,
-    type,
-    amountMode,
-    amount,
-    simulationMode,
-    simulatedDate,
-  } = validation;
+  const { symbol, type, amountMode, amount, simulationMode, simulatedDate } =
+    validation;
 
   try {
     const quote = await getStockPrice(symbol, {

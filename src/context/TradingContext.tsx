@@ -67,8 +67,7 @@ function isQuoteFresh(quote: LiveStockQuote): boolean {
 
 export function TradingProvider({ children }: { children: ReactNode }) {
   const [activeTab, setActiveTab] = useState<TabId>("portfolio");
-  const [simulationMode, setSimulationMode] =
-    useState<SimulationMode>("present");
+  const [simulationMode, setSimulationMode] = useState<SimulationMode>("present");
   const [simulatedDate, setSimulatedDate] = useState(todayISO());
   const [portfolio, setPortfolio] = useState<PortfolioState>(EMPTY_PORTFOLIO);
   const [quotes, setQuotes] = useState<Record<string, LiveStockQuote>>({});
@@ -132,9 +131,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         transactions: data.transactions,
       });
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load portfolio.",
-      );
+      setError(err instanceof Error ? err.message : "Failed to load portfolio.");
     } finally {
       setIsLoading(false);
     }
@@ -142,11 +139,9 @@ export function TradingProvider({ children }: { children: ReactNode }) {
 
   const refreshQuotes = useCallback(
     async (symbols?: string[], force = false) => {
-      const symbolList =
-        symbols ??
-        [
-          ...new Set(portfolio.positions.map((position) => position.symbol)),
-        ];
+      const symbolList = symbols ?? [
+        ...new Set(portfolio.positions.map((position) => position.symbol)),
+      ];
 
       if (symbolList.length === 0) {
         setQuotes({});
@@ -189,12 +184,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         setIsRefreshingQuotes(false);
       }
     },
-    [
-      portfolio.positions,
-      lastUpdated,
-      quotes,
-      fetchQuotesFromApi,
-    ],
+    [portfolio.positions, lastUpdated, quotes, fetchQuotesFromApi],
   );
 
   const fetchQuoteForSymbol = useCallback(
@@ -250,9 +240,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   }, [simulationMode, isLoading, refreshQuotes]);
 
   const executeTrade = useCallback(
-    async (
-      input: ExecuteTradeInput,
-    ): Promise<{ success: boolean; error?: string }> => {
+    async (input: ExecuteTradeInput): Promise<{ success: boolean; error?: string }> => {
       try {
         const response = await fetch("/api/trades", {
           method: "POST",
@@ -295,8 +283,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         return {
           success: false,
-          error:
-            err instanceof Error ? err.message : "Failed to execute trade.",
+          error: err instanceof Error ? err.message : "Failed to execute trade.",
         };
       }
     },
@@ -343,9 +330,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  return (
-    <TradingContext.Provider value={value}>{children}</TradingContext.Provider>
-  );
+  return <TradingContext.Provider value={value}>{children}</TradingContext.Provider>;
 }
 
 export function useTrading() {

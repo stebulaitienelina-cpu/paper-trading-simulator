@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { AllocationSlice } from "@/lib/charts/portfolioAnalytics";
 import { formatCurrency } from "@/lib/utils";
 
@@ -43,10 +37,7 @@ export function AllocationChart({ data }: AllocationChartProps) {
               ))}
             </Pie>
             <Tooltip
-              formatter={(value, name) => [
-                formatCurrency(Number(value)),
-                String(name),
-              ]}
+              formatter={(value, name) => [formatCurrency(Number(value)), String(name)]}
               contentStyle={{
                 borderRadius: "0.75rem",
                 border: "1px solid #e4e4e7",
@@ -65,9 +56,7 @@ export function AllocationChart({ data }: AllocationChartProps) {
             />
             <span className="text-zinc-600 dark:text-zinc-300">
               {slice.name}: {formatCurrency(slice.value)}
-              {total > 0
-                ? ` (${((slice.value / total) * 100).toFixed(1)}%)`
-                : ""}
+              {total > 0 ? ` (${((slice.value / total) * 100).toFixed(1)}%)` : ""}
             </span>
           </div>
         ))}

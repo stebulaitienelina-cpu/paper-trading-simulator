@@ -49,20 +49,19 @@ export async function fetchPortfolioState(
   const supabase = createServerSupabaseClient();
   const id = portfolioId ?? (await resolvePortfolioId());
 
-  const [portfolioResult, positionsResult, transactionsResult] =
-    await Promise.all([
-      supabase.from("portfolios").select("*").eq("id", id).single(),
-      supabase
-        .from("positions")
-        .select("*")
-        .eq("portfolio_id", id)
-        .order("symbol", { ascending: true }),
-      supabase
-        .from("transactions")
-        .select("*")
-        .eq("portfolio_id", id)
-        .order("created_at", { ascending: false }),
-    ]);
+  const [portfolioResult, positionsResult, transactionsResult] = await Promise.all([
+    supabase.from("portfolios").select("*").eq("id", id).single(),
+    supabase
+      .from("positions")
+      .select("*")
+      .eq("portfolio_id", id)
+      .order("symbol", { ascending: true }),
+    supabase
+      .from("transactions")
+      .select("*")
+      .eq("portfolio_id", id)
+      .order("created_at", { ascending: false }),
+  ]);
 
   if (portfolioResult.error) {
     throw new Error(portfolioResult.error.message);

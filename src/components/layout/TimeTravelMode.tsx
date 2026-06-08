@@ -6,12 +6,8 @@ import type { SimulationMode } from "@/lib/types";
 import { cn, formatDate, todayISO } from "@/lib/utils";
 
 export function TimeTravelMode() {
-  const {
-    simulationMode,
-    setSimulationMode,
-    simulatedDate,
-    setSimulatedDate,
-  } = useTrading();
+  const { simulationMode, setSimulationMode, simulatedDate, setSimulatedDate } =
+    useTrading();
 
   const modes: { id: SimulationMode; label: string }[] = [
     { id: "present", label: "Present" },
@@ -53,8 +49,7 @@ export function TimeTravelMode() {
           onChange={(e) => setSimulatedDate(e.target.value)}
           className={cn(
             "rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900",
-            simulationMode === "present" &&
-              "cursor-not-allowed opacity-50",
+            simulationMode === "present" && "cursor-not-allowed opacity-50",
           )}
         />
       </div>

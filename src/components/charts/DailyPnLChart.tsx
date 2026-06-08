@@ -37,7 +37,10 @@ export function DailyPnLChart({ data }: DailyPnLChartProps) {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <BarChart
+              data={chartData}
+              margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+            >
               <XAxis
                 dataKey="displayDate"
                 tick={{ fontSize: 11, fill: "#71717a" }}

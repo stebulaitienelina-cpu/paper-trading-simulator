@@ -10,8 +10,8 @@ export function TradeView() {
           Place a Trade
         </h2>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Buy or sell stocks using mock prices. All trades update your local
-          portfolio instantly.
+          Buy or sell stocks using mock prices. All trades update your local portfolio
+          instantly.
         </p>
       </div>
       <TradeForm />

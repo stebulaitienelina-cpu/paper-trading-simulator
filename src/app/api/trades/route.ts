@@ -4,10 +4,7 @@ import {
   fetchPortfolioState,
   resolvePortfolioId,
 } from "@/lib/trading/portfolioService";
-import {
-  validateTradeInput,
-  type TradeRequestBody,
-} from "@/lib/trading/validateTrade";
+import { validateTradeInput, type TradeRequestBody } from "@/lib/trading/validateTrade";
 
 export async function POST(request: Request) {
   try {
@@ -37,8 +34,7 @@ export async function POST(request: Request) {
       portfolio,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to execute trade.";
+    const message = error instanceof Error ? error.message : "Failed to execute trade.";
     const status = message.includes("Insufficient") ? 400 : 500;
 
     return NextResponse.json({ error: message }, { status });

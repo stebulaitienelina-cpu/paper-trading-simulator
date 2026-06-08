@@ -20,10 +20,7 @@ export function PortfolioView() {
 
   return (
     <div className="space-y-6">
-      <PortfolioSummary
-        cashBalance={portfolio.cashBalance}
-        stockValue={stockValue}
-      />
+      <PortfolioSummary cashBalance={portfolio.cashBalance} stockValue={stockValue} />
 
       {quotesWarning && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">

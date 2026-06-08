@@ -8,10 +8,7 @@ interface PortfolioSummaryProps {
   stockValue: number;
 }
 
-export function PortfolioSummary({
-  cashBalance,
-  stockValue,
-}: PortfolioSummaryProps) {
+export function PortfolioSummary({ cashBalance, stockValue }: PortfolioSummaryProps) {
   const totalBalance = cashBalance + stockValue;
 
   const cards = [

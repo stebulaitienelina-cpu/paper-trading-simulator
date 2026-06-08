@@ -3,10 +3,7 @@ import {
   FALLBACK_MOCK_PRICE_EUR,
   LIVE_QUOTE_CACHE_TTL_MS,
 } from "./constants";
-import {
-  AlphaVantageRateLimitError,
-  isAlphaVantageRateLimitError,
-} from "./rateLimit";
+import { AlphaVantageRateLimitError, isAlphaVantageRateLimitError } from "./rateLimit";
 
 export type StockPriceSource = "live" | "historical" | "fallback";
 
@@ -37,9 +34,7 @@ const resolvedPriceCache = new Map<string, CacheEntry<StockPriceResult>>();
 function getApiKey(): string {
   const key = process.env.ALPHA_VANTAGE_API_KEY;
   if (!key) {
-    throw new Error(
-      "Missing ALPHA_VANTAGE_API_KEY. Add it to your .env.local file.",
-    );
+    throw new Error("Missing ALPHA_VANTAGE_API_KEY. Add it to your .env.local file.");
   }
   return key;
 }
@@ -49,9 +44,7 @@ function normalizeSymbol(symbol: string): string {
 }
 
 function buildCacheKey(symbol: string, simulationDate?: string | null): string {
-  return simulationDate
-    ? `${symbol}:historical:${simulationDate}`
-    : `${symbol}:live`;
+  return simulationDate ? `${symbol}:historical:${simulationDate}` : `${symbol}:live`;
 }
 
 function getCacheTtl(source: StockPriceSource): number {
@@ -61,10 +54,7 @@ function getCacheTtl(source: StockPriceSource): number {
   return LIVE_QUOTE_CACHE_TTL_MS;
 }
 
-function getCachedPrice(
-  cacheKey: string,
-  allowStale = false,
-): StockPriceResult | null {
+function getCachedPrice(cacheKey: string, allowStale = false): StockPriceResult | null {
   const entry = resolvedPriceCache.get(cacheKey);
   if (!entry) {
     return null;
@@ -303,9 +293,7 @@ export async function getStockPrices(
   symbols: string[],
   options: { simulationDate?: string | null } = {},
 ): Promise<StockPriceResult[]> {
-  const uniqueSymbols = [...new Set(symbols.map(normalizeSymbol))].filter(
-    Boolean,
-  );
+  const uniqueSymbols = [...new Set(symbols.map(normalizeSymbol))].filter(Boolean);
 
   const results: StockPriceResult[] = [];
 
@@ -314,11 +302,4 @@ export async function getStockPrices(
   }
 
   return results;
-}
-
-export function getCachedStockPrice(
-  symbol: string,
-  simulationDate?: string | null,
-): StockPriceResult | null {
-  return getCachedPrice(buildCacheKey(normalizeSymbol(symbol), simulationDate));
 }

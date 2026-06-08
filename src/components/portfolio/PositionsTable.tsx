@@ -53,8 +53,7 @@ export function PositionsTable({ positions }: PositionsTableProps) {
             const totalValue = position.shares * currentPrice;
             const costBasis = position.shares * position.avgCost;
             const plEur = totalValue - costBasis;
-            const plPercent =
-              costBasis > 0 ? (plEur / costBasis) * 100 : 0;
+            const plPercent = costBasis > 0 ? (plEur / costBasis) * 100 : 0;
             const isPositive = plEur >= 0;
 
             return (

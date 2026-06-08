@@ -21,12 +21,7 @@ export function PortfolioCharts() {
   );
 
   const equityData = useMemo(
-    () =>
-      buildEquityCurve(
-        portfolio.transactions,
-        portfolio.cashBalance,
-        stockValue,
-      ),
+    () => buildEquityCurve(portfolio.transactions, portfolio.cashBalance, stockValue),
     [portfolio.transactions, portfolio.cashBalance, stockValue],
   );
 
