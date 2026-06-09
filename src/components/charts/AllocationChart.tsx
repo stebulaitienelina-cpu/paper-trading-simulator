@@ -1,8 +1,12 @@
 "use client";
 
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { Cell, Pie, PieChart, Tooltip } from "recharts";
 import type { AllocationSlice } from "@/lib/charts/portfolioAnalytics";
+import { card, cardPadding } from "@/lib/ui/classes";
+import { CHART_SEGMENT_COLORS } from "@/lib/ui/chartTheme";
 import { formatCurrency } from "@/lib/utils";
+import { AllocationTooltip } from "./ChartTooltips";
+import { ChartContainer } from "./ChartContainer";
 
 interface AllocationChartProps {
   data: AllocationSlice[];
@@ -12,54 +16,57 @@ export function AllocationChart({ data }: AllocationChartProps) {
   const total = data.reduce((sum, slice) => sum + slice.value, 0);
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
-      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+    <div className={`flex min-h-[420px] flex-col ${card} ${cardPadding}`}>
+      <h3 className="text-sm font-semibold tracking-tight text-slate-100">
         Asset Allocation
       </h3>
-      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-        Cash vs. stock holdings
-      </p>
-      <div className="mt-4 h-56 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              innerRadius={52}
-              outerRadius={78}
-              paddingAngle={3}
-            >
-              {data.map((slice) => (
-                <Cell key={slice.name} fill={slice.color} />
-              ))}
-            </Pie>
-            <Tooltip
-              formatter={(value, name) => [formatCurrency(Number(value)), String(name)]}
-              contentStyle={{
-                borderRadius: "0.75rem",
-                border: "1px solid #e4e4e7",
-                fontSize: "12px",
-              }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="mt-3 flex flex-wrap justify-center gap-4">
-        {data.map((slice) => (
-          <div key={slice.name} className="flex items-center gap-2 text-xs">
-            <span
-              className="h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: slice.color }}
-            />
-            <span className="text-zinc-600 dark:text-zinc-300">
-              {slice.name}: {formatCurrency(slice.value)}
-              {total > 0 ? ` (${((slice.value / total) * 100).toFixed(1)}%)` : ""}
-            </span>
-          </div>
-        ))}
+      <p className="mt-1.5 text-xs font-normal text-slate-400">Cash vs. stock holdings</p>
+      <ChartContainer>
+        <PieChart>
+          <Pie
+            data={data}
+            dataKey="value"
+            nameKey="name"
+            cx="50%"
+            cy="50%"
+            innerRadius={60}
+            outerRadius={80}
+            paddingAngle={3}
+            stroke="#0f172a"
+            strokeWidth={2}
+          >
+            {data.map((slice, index) => (
+              <Cell
+                key={slice.name}
+                fill={CHART_SEGMENT_COLORS[index % CHART_SEGMENT_COLORS.length]}
+              />
+            ))}
+          </Pie>
+          <Tooltip
+            content={({ active, payload }) => (
+              <AllocationTooltip active={active} payload={payload} total={total} />
+            )}
+          />
+        </PieChart>
+      </ChartContainer>
+      <div className="mt-5 flex flex-wrap justify-center gap-x-8 gap-y-3">
+        {data.map((slice, index) => {
+          const color = CHART_SEGMENT_COLORS[index % CHART_SEGMENT_COLORS.length];
+          const percentage = total > 0 ? ((slice.value / total) * 100).toFixed(1) : "0.0";
+
+          return (
+            <div key={slice.name} className="flex items-center gap-2.5 text-xs font-medium">
+              <span
+                className="h-3 w-3 shrink-0 rounded-full ring-1 ring-slate-600/50"
+                style={{ backgroundColor: color }}
+              />
+              <span className="text-slate-200">
+                {slice.name}: {formatCurrency(slice.value)}
+                <span className="text-slate-400"> ({percentage}%)</span>
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

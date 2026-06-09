@@ -6,6 +6,8 @@ import {
   buildAllocationData,
   buildDailyPnL,
   buildEquityCurve,
+  ensureDailyPnLDisplay,
+  ensureEquityCurveDisplay,
   sumPositionMarketValue,
 } from "@/lib/charts/portfolioAnalytics";
 import { AllocationChart } from "./AllocationChart";
@@ -20,26 +22,42 @@ export function PortfolioCharts() {
     [portfolio.positions, quotes],
   );
 
-  const equityData = useMemo(
+  const currentEquity = portfolio.cashBalance + stockValue;
+
+  const rawEquityData = useMemo(
     () => buildEquityCurve(portfolio.transactions, portfolio.cashBalance, stockValue),
     [portfolio.transactions, portfolio.cashBalance, stockValue],
   );
+
+  const equityData = useMemo(
+    () => ensureEquityCurveDisplay(rawEquityData, currentEquity),
+    [rawEquityData, currentEquity],
+  );
+
+  const isMockEquity = rawEquityData.length < 4;
 
   const allocationData = useMemo(
     () => buildAllocationData(portfolio.cashBalance, stockValue),
     [portfolio.cashBalance, stockValue],
   );
 
-  const dailyPnLData = useMemo(
+  const rawDailyPnL = useMemo(
     () => buildDailyPnL(portfolio.transactions),
     [portfolio.transactions],
   );
 
+  const dailyPnLData = useMemo(
+    () => ensureDailyPnLDisplay(rawDailyPnL),
+    [rawDailyPnL],
+  );
+
+  const isMockDailyPnL = rawDailyPnL.length === 0;
+
   return (
-    <div className="grid gap-4 xl:grid-cols-3">
-      <EquityCurveChart data={equityData} />
+    <div className="grid gap-6 xl:grid-cols-3">
+      <EquityCurveChart data={equityData} isMockData={isMockEquity} />
       <AllocationChart data={allocationData} />
-      <DailyPnLChart data={dailyPnLData} />
+      <DailyPnLChart data={dailyPnLData} isMockData={isMockDailyPnL} />
     </div>
   );
 }

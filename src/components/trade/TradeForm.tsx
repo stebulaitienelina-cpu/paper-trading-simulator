@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Loader2 } from "lucide-react";
 import { useTrading } from "@/context/TradingContext";
-import { FALLBACK_MOCK_PRICE_EUR } from "@/lib/market/constants";
+import { isQuoteMatchingContext } from "@/lib/market/resolveSimulationDate";
 import { EXAMPLE_SYMBOLS } from "@/lib/mockData";
 import type { AmountMode, LiveStockQuote, TradeType } from "@/lib/types";
+import { alertWarning, btnTransition, card, cardPadding, inputField, toggleActive, toggleGroup, toggleInactive } from "@/lib/ui/classes";
 import { cn, formatCurrency } from "@/lib/utils";
 
 export function TradeForm() {
@@ -26,6 +27,11 @@ export function TradeForm() {
   } | null>(null);
 
   const normalizedSymbol = symbol.trim().toUpperCase();
+  const fetchQuoteForSymbolRef = useRef(fetchQuoteForSymbol);
+
+  useLayoutEffect(() => {
+    fetchQuoteForSymbolRef.current = fetchQuoteForSymbol;
+  });
 
   useEffect(() => {
     if (!normalizedSymbol) {
@@ -39,32 +45,45 @@ export function TradeForm() {
         setIsFetchingPrice(true);
         setPriceError(null);
 
-        const result = await fetchQuoteForSymbol(normalizedSymbol);
+        try {
+          const result = await fetchQuoteForSymbolRef.current(normalizedSymbol, {
+            force: true,
+          });
 
-        if (cancelled) {
-          return;
-        }
+          if (cancelled) {
+            return;
+          }
 
-        if (result) {
           setQuote(result);
           setPriceError(null);
-        } else {
-          setQuote(null);
-          setPriceError("Could not fetch a price for this symbol.");
+        } catch (err) {
+          if (!cancelled) {
+            setQuote(null);
+            setPriceError(
+              err instanceof Error
+                ? err.message
+                : "Could not fetch a historical price for this symbol.",
+            );
+          }
+        } finally {
+          setIsFetchingPrice(false);
         }
-
-        setIsFetchingPrice(false);
       })();
     }, 400);
 
     return () => {
       cancelled = true;
       window.clearTimeout(timeoutId);
+      setIsFetchingPrice(false);
     };
-  }, [normalizedSymbol, simulationMode, simulatedDate, fetchQuoteForSymbol]);
+  }, [normalizedSymbol, simulationMode, simulatedDate]);
 
   const displayQuote =
-    normalizedSymbol && quote?.symbol === normalizedSymbol ? quote : null;
+    normalizedSymbol &&
+    quote?.symbol === normalizedSymbol &&
+    isQuoteMatchingContext(quote, simulationMode, simulatedDate)
+      ? quote
+      : null;
   const displayPriceError = normalizedSymbol ? priceError : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,7 +103,7 @@ export function TradeForm() {
     if (result.success) {
       const priceNote =
         displayQuote?.source === "fallback"
-          ? ` (fallback test price ${formatCurrency(FALLBACK_MOCK_PRICE_EUR)})`
+          ? ` (simulated price ${formatCurrency(displayQuote.price)})`
           : "";
       setFeedback({
         type: "success",
@@ -105,12 +124,12 @@ export function TradeForm() {
     <div className="mx-auto max-w-lg">
       <form
         onSubmit={handleSubmit}
-        className="space-y-5 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900/50"
+        className={`space-y-6 ${card} ${cardPadding}`}
       >
         <div>
           <label
             htmlFor="symbol"
-            className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+            className="mb-1.5 block text-sm font-medium text-slate-300"
           >
             Stock Symbol
           </label>
@@ -120,19 +139,19 @@ export function TradeForm() {
             value={symbol}
             onChange={(e) => setSymbol(e.target.value.toUpperCase())}
             placeholder="e.g. AAPL"
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm uppercase placeholder:normal-case dark:border-zinc-700 dark:bg-zinc-900"
+            className={cn(inputField, "uppercase placeholder:normal-case")}
           />
-          <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="mt-1.5 text-xs text-slate-500">
             Examples: {EXAMPLE_SYMBOLS.join(", ")}
           </p>
           {isFetchingPrice && normalizedSymbol && (
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-400" />
               Fetching price…
             </p>
           )}
           {!isFetchingPrice && displayQuote && displayQuote.source !== "fallback" && (
-            <p className="mt-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+            <p className="mt-1 text-xs font-medium text-emerald-400">
               {displayQuote.source === "historical" ? "Historical" : "Live"} price:{" "}
               {formatCurrency(displayQuote.price)}
               {amountMode === "eur" && amount && Number(amount) > 0 && (
@@ -148,39 +167,40 @@ export function TradeForm() {
             </p>
           )}
           {!isFetchingPrice && displayQuote?.source === "fallback" && (
-            <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+            <div className={`mt-2 flex items-start gap-2 ${alertWarning} px-3.5 py-2.5 text-xs`}>
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <p>
-                Alpha Vantage rate limit reached. Using fallback test price of{" "}
-                {formatCurrency(FALLBACK_MOCK_PRICE_EUR)} so you can still test BUY/SELL
-                and database updates.
+                {simulationMode === "simulated" && simulatedDate
+                  ? `Historical API unavailable for ${simulatedDate}.`
+                  : "Live API unavailable."}{" "}
+                Using simulated price of {formatCurrency(displayQuote.price)} so you
+                can still test BUY/SELL and database updates.
               </p>
             </div>
           )}
           {displayPriceError && (
-            <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-              {displayPriceError}
-            </p>
+            <p className="mt-1 text-xs text-red-400">{displayPriceError}</p>
           )}
         </div>
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <span className="mb-1.5 block text-sm font-medium text-slate-300">
             Order Type
           </span>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2.5">
             {(["BUY", "SELL"] as TradeType[]).map((type) => (
               <button
                 key={type}
                 type="button"
                 onClick={() => setTradeType(type)}
                 className={cn(
-                  "flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors",
+                  "flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium",
+                  btnTransition,
                   tradeType === type
                     ? type === "BUY"
-                      ? "border-emerald-600 bg-emerald-600 text-white"
-                      : "border-red-600 bg-red-600 text-white"
-                    : "border-zinc-200 text-zinc-600 hover:border-zinc-300 dark:border-zinc-700 dark:text-zinc-400",
+                      ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
+                      : "border-red-600 bg-red-600 text-white shadow-sm"
+                    : "border-slate-700 text-slate-400 hover:border-slate-600 hover:bg-slate-700/40 hover:text-slate-100",
                 )}
               >
                 {type === "BUY" ? (
@@ -195,10 +215,10 @@ export function TradeForm() {
         </div>
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <span className="mb-1.5 block text-sm font-medium text-slate-300">
             Amount In
           </span>
-          <div className="mb-2 flex rounded-lg border border-zinc-200 bg-zinc-50 p-0.5 dark:border-zinc-700 dark:bg-zinc-900">
+          <div className={`mb-3 ${toggleGroup}`}>
             {(
               [
                 { id: "eur" as AmountMode, label: "EUR" },
@@ -210,10 +230,9 @@ export function TradeForm() {
                 type="button"
                 onClick={() => setAmountMode(id)}
                 className={cn(
-                  "flex-1 rounded-md py-1.5 text-xs font-medium transition-colors",
-                  amountMode === id
-                    ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-50"
-                    : "text-zinc-500 dark:text-zinc-400",
+                  "flex-1 rounded-lg py-2 text-xs font-medium",
+                  btnTransition,
+                  amountMode === id ? toggleActive : toggleInactive,
                 )}
               >
                 {label}
@@ -227,13 +246,13 @@ export function TradeForm() {
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder={amountMode === "eur" ? "Amount in EUR" : "Number of shares"}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className={inputField}
           />
         </div>
 
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="text-xs font-normal leading-relaxed text-slate-500">
           {simulationMode === "simulated"
-            ? `Trade will use the closing price on ${simulatedDate}.`
+            ? `Trade will use the closing price on ${simulatedDate} (refreshes when the date changes).`
             : "Trade will use the current live price (cached for 30 min to save API calls)."}
         </p>
 
@@ -241,10 +260,11 @@ export function TradeForm() {
           type="submit"
           disabled={isSubmitting || isFetchingPrice}
           className={cn(
-            "w-full rounded-lg px-4 py-3 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+            "w-full rounded-xl px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60",
+            btnTransition,
             tradeType === "BUY"
-              ? "bg-emerald-600 hover:bg-emerald-700"
-              : "bg-red-600 hover:bg-red-700",
+              ? "bg-emerald-600 shadow-sm hover:bg-emerald-500 hover:shadow-md"
+              : "bg-red-600 shadow-sm hover:bg-red-500 hover:shadow-md",
           )}
         >
           {isSubmitting ? "Executing…" : `Execute ${tradeType} Order`}
@@ -253,10 +273,10 @@ export function TradeForm() {
         {feedback && (
           <p
             className={cn(
-              "rounded-lg px-3 py-2 text-sm",
+              "rounded-xl border px-4 py-3 text-sm font-normal",
               feedback.type === "success"
-                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
-                : "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400",
+                ? "border-emerald-900/50 bg-emerald-950/30 text-emerald-400"
+                : "border-red-900/50 bg-red-950/30 text-red-400",
             )}
           >
             {feedback.message}

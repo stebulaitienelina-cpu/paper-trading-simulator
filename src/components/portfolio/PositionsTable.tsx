@@ -2,6 +2,7 @@
 
 import { useTrading } from "@/context/TradingContext";
 import type { Position } from "@/lib/types";
+import { emptyState, tableHead, tableRow, tableShell } from "@/lib/ui/classes";
 import { cn, formatCurrency, formatPercent, formatShares } from "@/lib/utils";
 
 interface PositionsTableProps {
@@ -13,8 +14,8 @@ export function PositionsTable({ positions }: PositionsTableProps) {
 
   if (positions.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-700">
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+      <div className={emptyState}>
+        <p className="text-sm font-normal text-slate-400">
           No open positions. Head to the Trade tab to buy your first stock.
         </p>
       </div>
@@ -22,26 +23,26 @@ export function PositionsTable({ positions }: PositionsTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+    <div className={tableShell}>
       <table className="w-full min-w-[640px] text-left text-sm">
         <thead>
-          <tr className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50">
-            <th className="px-4 py-3 font-medium text-zinc-500 dark:text-zinc-400">
+          <tr className={tableHead}>
+            <th className="px-5 py-3.5 text-xs font-medium uppercase tracking-wide text-slate-400">
               Symbol
             </th>
-            <th className="px-4 py-3 font-medium text-zinc-500 dark:text-zinc-400">
+            <th className="px-5 py-3.5 text-xs font-medium uppercase tracking-wide text-slate-400">
               Shares Owned
             </th>
-            <th className="px-4 py-3 font-medium text-zinc-500 dark:text-zinc-400">
+            <th className="px-5 py-3.5 text-xs font-medium uppercase tracking-wide text-slate-400">
               Current Price
             </th>
-            <th className="px-4 py-3 font-medium text-zinc-500 dark:text-zinc-400">
+            <th className="px-5 py-3.5 text-xs font-medium uppercase tracking-wide text-slate-400">
               Total Value
             </th>
-            <th className="px-4 py-3 font-medium text-zinc-500 dark:text-zinc-400">
+            <th className="px-5 py-3.5 text-xs font-medium uppercase tracking-wide text-slate-400">
               P/L (EUR)
             </th>
-            <th className="px-4 py-3 font-medium text-zinc-500 dark:text-zinc-400">
+            <th className="px-5 py-3.5 text-xs font-medium uppercase tracking-wide text-slate-400">
               P/L (%)
             </th>
           </tr>
@@ -57,30 +58,27 @@ export function PositionsTable({ positions }: PositionsTableProps) {
             const isPositive = plEur >= 0;
 
             return (
-              <tr
-                key={position.symbol}
-                className="border-b border-zinc-100 last:border-0 dark:border-zinc-800/80"
-              >
-                <td className="px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100">
+              <tr key={position.symbol} className={tableRow}>
+                <td className="px-5 py-4 font-medium text-slate-100">
                   {position.symbol}
                 </td>
-                <td className="px-4 py-3 tabular-nums text-zinc-700 dark:text-zinc-300">
+                <td className="px-5 py-4 font-normal tabular-nums text-slate-300">
                   {formatShares(position.shares)}
                 </td>
-                <td className="px-4 py-3 tabular-nums text-zinc-700 dark:text-zinc-300">
+                <td className="px-5 py-4 font-normal tabular-nums text-slate-300">
                   {quote ? formatCurrency(currentPrice) : "—"}
                 </td>
-                <td className="px-4 py-3 tabular-nums font-medium text-zinc-900 dark:text-zinc-100">
+                <td className="px-5 py-4 font-medium tabular-nums text-slate-100">
                   {quote ? formatCurrency(totalValue) : "—"}
                 </td>
                 <td
                   className={cn(
-                    "px-4 py-3 tabular-nums font-medium",
+                    "px-5 py-4 font-medium tabular-nums",
                     quote
                       ? isPositive
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-red-600 dark:text-red-400"
-                      : "text-zinc-400",
+                        ? "text-emerald-400"
+                        : "text-red-400"
+                      : "text-slate-500",
                   )}
                 >
                   {quote ? (
@@ -94,12 +92,12 @@ export function PositionsTable({ positions }: PositionsTableProps) {
                 </td>
                 <td
                   className={cn(
-                    "px-4 py-3 tabular-nums font-medium",
+                    "px-5 py-4 font-medium tabular-nums",
                     quote
                       ? isPositive
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-red-600 dark:text-red-400"
-                      : "text-zinc-400",
+                        ? "text-emerald-400"
+                        : "text-red-400"
+                      : "text-slate-500",
                   )}
                 >
                   {quote ? formatPercent(plPercent) : "—"}

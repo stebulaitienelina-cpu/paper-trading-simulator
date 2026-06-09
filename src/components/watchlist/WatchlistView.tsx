@@ -4,6 +4,19 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2, Star, StarOff } from "lucide-react";
 import { useTrading } from "@/context/TradingContext";
 import type { LiveStockQuote, WatchlistItem } from "@/lib/types";
+import {
+  alertError,
+  alertSuccess,
+  btnTransition,
+  card,
+  cardPadding,
+  emptyState,
+  inputField,
+  pageStack,
+  pillBadge,
+  sectionSubtitle,
+  sectionTitle,
+} from "@/lib/ui/classes";
 import { cn, formatCurrency } from "@/lib/utils";
 
 export function WatchlistView() {
@@ -131,24 +144,22 @@ export function WatchlistView() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className={pageStack}>
       <div>
-        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-          Watchlist
-        </h2>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <h2 className={sectionTitle}>Watchlist</h2>
+        <p className={sectionSubtitle}>
           Track symbols and their current or fallback prices.
         </p>
       </div>
 
       <form
         onSubmit={handleAdd}
-        className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-4 sm:flex-row sm:items-end dark:border-zinc-800 dark:bg-zinc-900/50"
+        className={`flex flex-col gap-4 sm:flex-row sm:items-end ${card} ${cardPadding}`}
       >
         <div className="flex-1">
           <label
             htmlFor="watchlist-symbol"
-            className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+            className="mb-2 block text-sm font-medium text-slate-300"
           >
             Add symbol
           </label>
@@ -158,45 +169,40 @@ export function WatchlistView() {
             value={symbolInput}
             onChange={(e) => setSymbolInput(e.target.value.toUpperCase())}
             placeholder="e.g. MSFT"
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm uppercase placeholder:normal-case dark:border-zinc-700 dark:bg-zinc-900"
+            className={cn(inputField, "uppercase placeholder:normal-case")}
           />
         </div>
         <button
           type="submit"
           disabled={isSubmitting || !symbolInput.trim()}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className={cn(
+            "inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60",
+            btnTransition,
+          )}
         >
           <Star className="h-4 w-4" />
           {isSubmitting ? "Adding…" : "Add to Watchlist"}
         </button>
       </form>
 
-      {feedback && (
-        <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
-          {feedback}
-        </p>
-      )}
+      {feedback && <p className={alertSuccess}>{feedback}</p>}
 
-      {error && (
-        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-400">
-          {error}
-        </p>
-      )}
+      {error && <p className={alertError}>{error}</p>}
 
       {isLoading ? (
-        <div className="flex items-center justify-center gap-2 py-16 text-sm text-zinc-500 dark:text-zinc-400">
-          <Loader2 className="h-5 w-5 animate-spin" />
+        <div className="flex items-center justify-center gap-3 py-20 text-sm font-medium text-slate-400">
+          <Loader2 className="h-5 w-5 animate-spin text-emerald-400" />
           Loading watchlist…
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-700">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <div className={emptyState}>
+          <p className="text-sm font-normal text-slate-400">
             Your watchlist is empty. Add a symbol above to get started.
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
-          <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+        <div className={`overflow-hidden ${card}`}>
+          <ul className="divide-y divide-slate-700">
             {items.map((item) => {
               const quote = quotes[item.stockSymbol];
               const isFallback = quote?.source === "fallback";
@@ -204,30 +210,37 @@ export function WatchlistView() {
               return (
                 <li
                   key={item.id}
-                  className="flex items-center justify-between gap-4 bg-white px-4 py-3 dark:bg-zinc-900/50"
+                  className="flex items-center justify-between gap-4 px-5 py-4 transition-colors duration-200 hover:bg-slate-700/40"
                 >
                   <div>
-                    <p className="font-semibold text-zinc-900 dark:text-zinc-100">
-                      {item.stockSymbol}
-                    </p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      {quote ? (
-                        <>
-                          {formatCurrency(quote.price)}
-                          {isFallback ? " · fallback price" : ` · ${quote.source}`}
-                        </>
-                      ) : (
-                        "Price unavailable"
+                    <div className="flex items-center gap-2.5">
+                      <p className="font-medium tracking-tight text-slate-100">
+                        {item.stockSymbol}
+                      </p>
+                      {quote && (
+                        <span
+                          className={cn(
+                            pillBadge,
+                            isFallback
+                              ? "bg-amber-950/40 text-amber-400"
+                              : "bg-slate-700 text-slate-400",
+                          )}
+                        >
+                          {isFallback ? "Fallback" : quote.source}
+                        </span>
                       )}
+                    </div>
+                    <p className="mt-1 text-sm font-normal tabular-nums text-slate-400">
+                      {quote ? formatCurrency(quote.price) : "Price unavailable"}
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => void handleRemove(item.stockSymbol)}
                     className={cn(
-                      "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                      "border-zinc-200 text-zinc-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600",
-                      "dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-red-900 dark:hover:bg-red-950/30 dark:hover:text-red-400",
+                      "inline-flex items-center gap-1.5 rounded-xl border border-slate-700 px-3.5 py-2 text-xs font-medium text-slate-400",
+                      btnTransition,
+                      "hover:border-red-900/60 hover:bg-red-950/30 hover:text-red-400",
                     )}
                     aria-label={`Remove ${item.stockSymbol} from watchlist`}
                   >

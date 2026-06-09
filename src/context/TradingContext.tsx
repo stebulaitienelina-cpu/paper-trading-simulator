@@ -5,14 +5,19 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { QUOTE_REFRESH_INTERVAL_MS } from "@/lib/market/constants";
 import {
-  CLIENT_QUOTE_CACHE_TTL_MS,
-  QUOTE_REFRESH_INTERVAL_MS,
-} from "@/lib/market/constants";
+  CLIENT_HISTORICAL_QUOTE_FETCH_TIMEOUT_MS,
+  CLIENT_QUOTE_FETCH_TIMEOUT_MS,
+  createClientFallbackQuote,
+} from "@/lib/market/clientQuoteFallback";
+import { isQuoteValidForSimulation, usesLivePricing } from "@/lib/market/resolveSimulationDate";
 import type {
   AmountMode,
   LiveStockQuote,
@@ -47,7 +52,10 @@ interface TradingContextValue {
   quotesError: string | null;
   refreshPortfolio: () => Promise<void>;
   refreshQuotes: (symbols?: string[], force?: boolean) => Promise<void>;
-  fetchQuoteForSymbol: (symbol: string) => Promise<LiveStockQuote | null>;
+  fetchQuoteForSymbol: (
+    symbol: string,
+    options?: { force?: boolean },
+  ) => Promise<LiveStockQuote>;
   executeTrade: (
     input: ExecuteTradeInput,
   ) => Promise<{ success: boolean; error?: string }>;
@@ -60,10 +68,6 @@ const EMPTY_PORTFOLIO: PortfolioState = {
 };
 
 const TradingContext = createContext<TradingContextValue | null>(null);
-
-function isQuoteFresh(quote: LiveStockQuote): boolean {
-  return Date.now() - quote.fetchedAt < CLIENT_QUOTE_CACHE_TTL_MS;
-}
 
 export function TradingProvider({ children }: { children: ReactNode }) {
   const [activeTab, setActiveTab] = useState<TabId>("portfolio");
@@ -78,6 +82,29 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [quotesError, setQuotesError] = useState<string | null>(null);
 
+  const quotesRef = useRef(quotes);
+  const lastUpdatedRef = useRef(lastUpdated);
+  const simulationModeRef = useRef(simulationMode);
+  const simulatedDateRef = useRef(simulatedDate);
+  const refreshQuotesRef = useRef<
+    (symbols?: string[], force?: boolean) => Promise<void>
+  >(async () => {});
+
+  useLayoutEffect(() => {
+    quotesRef.current = quotes;
+    lastUpdatedRef.current = lastUpdated;
+    simulationModeRef.current = simulationMode;
+    simulatedDateRef.current = simulatedDate;
+  });
+
+  const lastQuoteFetchContextRef = useRef<string | null>(null);
+  const quoteFetchInFlightRef = useRef(false);
+
+  const positionSymbols = useMemo(
+    () => [...new Set(portfolio.positions.map((position) => position.symbol))],
+    [portfolio.positions],
+  );
+
   const mergeQuotes = useCallback((incoming: LiveStockQuote[]) => {
     setQuotes((prev) => {
       const next = { ...prev };
@@ -89,28 +116,63 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const fetchQuotesFromApi = useCallback(
-    async (symbolList: string[]) => {
+    async (symbolList: string[]): Promise<LiveStockQuote[]> => {
+      const mode = simulationModeRef.current;
+      const date = simulatedDateRef.current;
+      const fetchTimeoutMs = usesLivePricing(mode, date)
+        ? CLIENT_QUOTE_FETCH_TIMEOUT_MS
+        : CLIENT_HISTORICAL_QUOTE_FETCH_TIMEOUT_MS;
+
       const params = new URLSearchParams({
         symbols: symbolList.join(","),
-        simulationMode,
-        simulatedDate,
+        simulationMode: mode,
+        simulatedDate: date,
       });
 
-      const response = await fetch(`/api/quotes?${params.toString()}`);
-      const data = await response.json();
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(
+        () => controller.abort(),
+        fetchTimeoutMs,
+      );
 
-      if (!response.ok) {
-        throw new Error(data.error ?? "Failed to fetch stock quotes.");
+      try {
+        const response = await fetch(`/api/quotes?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        const data = await response.json();
+
+        if (!response.ok || !Array.isArray(data.quotes)) {
+          throw new Error(data.error ?? "Failed to fetch stock quotes.");
+        }
+
+        const incoming = data.quotes as LiveStockQuote[];
+        mergeQuotes(incoming);
+        setLastUpdated(data.lastUpdated ?? Date.now());
+        setQuotesWarning(data.warning ?? null);
+
+        return incoming;
+      } catch (err) {
+        if (!usesLivePricing(mode, date)) {
+          const message =
+            err instanceof Error
+              ? err.message
+              : "Historical price unavailable. Polygon may be rate-limited — try again in a moment.";
+          setQuotesError(message);
+          throw err instanceof Error ? err : new Error(message);
+        }
+
+        const fallbacks = symbolList.map((symbol) =>
+          createClientFallbackQuote(symbol, mode, date),
+        );
+        mergeQuotes(fallbacks);
+        setLastUpdated(Date.now());
+        setQuotesWarning("Live API unavailable. Showing simulated prices.");
+        return fallbacks;
+      } finally {
+        window.clearTimeout(timeoutId);
       }
-
-      const incoming = data.quotes as LiveStockQuote[];
-      mergeQuotes(incoming);
-      setLastUpdated(data.lastUpdated ?? Date.now());
-      setQuotesWarning(data.warning ?? null);
-
-      return incoming;
     },
-    [mergeQuotes, simulationMode, simulatedDate],
+    [mergeQuotes],
   );
 
   const refreshPortfolio = useCallback(async () => {
@@ -139,9 +201,9 @@ export function TradingProvider({ children }: { children: ReactNode }) {
 
   const refreshQuotes = useCallback(
     async (symbols?: string[], force = false) => {
-      const symbolList = symbols ?? [
-        ...new Set(portfolio.positions.map((position) => position.symbol)),
-      ];
+      const mode = simulationModeRef.current;
+      const date = simulatedDateRef.current;
+      const symbolList = symbols ?? positionSymbols;
 
       if (symbolList.length === 0) {
         setQuotes({});
@@ -151,26 +213,33 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      const latestUpdated = lastUpdatedRef.current;
       if (
         !force &&
         !symbols &&
-        lastUpdated &&
-        Date.now() - lastUpdated < QUOTE_REFRESH_INTERVAL_MS
+        latestUpdated &&
+        Date.now() - latestUpdated < QUOTE_REFRESH_INTERVAL_MS
       ) {
         return;
       }
 
+      const currentQuotes = quotesRef.current;
       const symbolsToFetch = force
         ? symbolList
         : symbolList.filter((symbol) => {
-            const cached = quotes[symbol];
-            return !cached || !isQuoteFresh(cached);
+            const cached = currentQuotes[symbol];
+            return !cached || !isQuoteValidForSimulation(cached, mode, date);
           });
 
       if (symbolsToFetch.length === 0) {
         return;
       }
 
+      if (quoteFetchInFlightRef.current) {
+        return;
+      }
+
+      quoteFetchInFlightRef.current = true;
       setIsRefreshingQuotes(true);
       setQuotesError(null);
 
@@ -181,33 +250,51 @@ export function TradingProvider({ children }: { children: ReactNode }) {
           err instanceof Error ? err.message : "Failed to fetch stock quotes.",
         );
       } finally {
+        quoteFetchInFlightRef.current = false;
         setIsRefreshingQuotes(false);
       }
     },
-    [portfolio.positions, lastUpdated, quotes, fetchQuotesFromApi],
+    [fetchQuotesFromApi, positionSymbols],
   );
 
   const fetchQuoteForSymbol = useCallback(
-    async (symbol: string): Promise<LiveStockQuote | null> => {
+    async (
+      symbol: string,
+      options: { force?: boolean } = {},
+    ): Promise<LiveStockQuote> => {
       const normalized = symbol.trim().toUpperCase();
-      if (!normalized) {
-        return null;
-      }
+      const mode = simulationModeRef.current;
+      const date = simulatedDateRef.current;
+      const cached = quotesRef.current[normalized];
 
-      const cached = quotes[normalized];
-      if (cached && isQuoteFresh(cached)) {
+      if (
+        !options.force &&
+        cached &&
+        isQuoteValidForSimulation(cached, mode, date)
+      ) {
         return cached;
       }
 
       try {
         const incoming = await fetchQuotesFromApi([normalized]);
-        return incoming[0] ?? null;
-      } catch {
-        return cached ?? null;
+        return (
+          incoming[0] ?? createClientFallbackQuote(normalized, mode, date)
+        );
+      } catch (err) {
+        if (!usesLivePricing(mode, date)) {
+          throw err instanceof Error
+            ? err
+            : new Error("Historical price unavailable.");
+        }
+        return createClientFallbackQuote(normalized, mode, date);
       }
     },
-    [quotes, fetchQuotesFromApi],
+    [fetchQuotesFromApi],
   );
+
+  useLayoutEffect(() => {
+    refreshQuotesRef.current = refreshQuotes;
+  });
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -221,11 +308,19 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const fetchKey = `${simulationMode}:${simulatedDate}:${positionSymbols.join(",")}`;
+    if (lastQuoteFetchContextRef.current === fetchKey) {
+      return;
+    }
+
+    lastQuoteFetchContextRef.current = fetchKey;
+
     const timer = window.setTimeout(() => {
-      void refreshQuotes();
+      void refreshQuotesRef.current(undefined, true);
     }, 0);
+
     return () => window.clearTimeout(timer);
-  }, [isLoading, refreshQuotes]);
+  }, [simulationMode, simulatedDate, isLoading, positionSymbols]);
 
   useEffect(() => {
     if (simulationMode !== "present" || isLoading) {
@@ -233,11 +328,11 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     }
 
     const intervalId = window.setInterval(() => {
-      void refreshQuotes(undefined, false);
+      void refreshQuotesRef.current(undefined, false);
     }, QUOTE_REFRESH_INTERVAL_MS);
 
     return () => window.clearInterval(intervalId);
-  }, [simulationMode, isLoading, refreshQuotes]);
+  }, [simulationMode, isLoading]);
 
   const executeTrade = useCallback(
     async (input: ExecuteTradeInput): Promise<{ success: boolean; error?: string }> => {
@@ -264,19 +359,20 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         setPortfolio(data.portfolio);
 
         const symbol = input.symbol.trim().toUpperCase();
-        const cached = quotes[symbol];
-        if (!cached || !isQuoteFresh(cached)) {
-          await refreshQuotes(
-            [
-              ...new Set([
-                ...data.portfolio.positions.map(
-                  (position: { symbol: string }) => position.symbol,
-                ),
-                symbol,
-              ]),
-            ],
-            false,
-          );
+        const cached = quotesRef.current[symbol];
+        if (
+          !cached ||
+          !isQuoteValidForSimulation(cached, simulationMode, simulatedDate)
+        ) {
+          const tradeSymbols = [
+            ...new Set([
+              ...data.portfolio.positions.map(
+                (position: { symbol: string }) => position.symbol,
+              ),
+              symbol,
+            ]),
+          ];
+          await refreshQuotesRef.current(tradeSymbols, false);
         }
 
         return { success: true };
@@ -287,7 +383,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         };
       }
     },
-    [simulationMode, simulatedDate, refreshQuotes, quotes],
+    [simulationMode, simulatedDate],
   );
 
   const value = useMemo(

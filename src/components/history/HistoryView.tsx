@@ -1,15 +1,14 @@
 "use client";
 
 import { TransactionsTable } from "./TransactionsTable";
+import { pageStack, sectionSubtitle, sectionTitle } from "@/lib/ui/classes";
 
 export function HistoryView() {
   return (
-    <div className="space-y-6">
+    <div className={pageStack}>
       <div>
-        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-          Transaction History
-        </h2>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <h2 className={sectionTitle}>Transaction History</h2>
+        <p className={sectionSubtitle}>
           All simulated trades with the date they were recorded under.
         </p>
       </div>

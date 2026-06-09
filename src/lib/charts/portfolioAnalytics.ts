@@ -1,4 +1,5 @@
 import type { Position, Transaction } from "@/lib/types";
+import { getChartSegmentColor } from "@/lib/ui/chartTheme";
 import { todayISO } from "@/lib/utils";
 
 export interface EquityPoint {
@@ -154,7 +155,7 @@ export function buildAllocationData(
     slices.push({
       name: "Cash",
       value: Number(cashBalance.toFixed(2)),
-      color: "#059669",
+      color: getChartSegmentColor(slices.length),
     });
   }
 
@@ -162,12 +163,16 @@ export function buildAllocationData(
     slices.push({
       name: "Stocks",
       value: Number(stockValue.toFixed(2)),
-      color: "#34d399",
+      color: getChartSegmentColor(slices.length),
     });
   }
 
   if (slices.length === 0) {
-    slices.push({ name: "Cash", value: 0, color: "#059669" });
+    slices.push({
+      name: "Cash",
+      value: 0,
+      color: getChartSegmentColor(0),
+    });
   }
 
   return slices;
@@ -230,9 +235,77 @@ export function sumPositionMarketValue(
   return Number(
     positions
       .reduce((sum, position) => {
-        const price = quotes[position.symbol]?.price ?? 0;
+        const price = quotes[position.symbol]?.price ?? position.avgCost;
         return sum + position.shares * price;
       }, 0)
       .toFixed(2),
   );
+}
+
+/** Smooth synthetic equity curve for presentation when history is sparse. */
+export function generateMockEquityCurve(currentEquity: number, days = 30): EquityPoint[] {
+  const endEquity = currentEquity > 0 ? currentEquity : 10_000;
+  const startEquity = Number((endEquity * 0.9).toFixed(2));
+  const points: EquityPoint[] = [];
+  const today = new Date();
+
+  for (let offset = days; offset >= 0; offset -= 1) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - offset);
+    const dateStr = date.toISOString().slice(0, 10);
+    const progress = (days - offset) / days;
+    const ease = progress * progress * (3 - 2 * progress);
+    const wave = Math.sin(progress * Math.PI * 1.5) * 0.015;
+    const equity = Number(
+      (startEquity + (endEquity - startEquity) * ease * (1 + wave)).toFixed(2),
+    );
+
+    points.push({
+      date: dateStr,
+      label: offset === 0 ? "Today" : dateStr,
+      equity,
+    });
+  }
+
+  return points;
+}
+
+export function ensureEquityCurveDisplay(
+  points: EquityPoint[],
+  currentEquity: number,
+): EquityPoint[] {
+  if (points.length >= 4) {
+    return points;
+  }
+
+  return generateMockEquityCurve(currentEquity);
+}
+
+/** Synthetic daily P/L bars when no sell trades exist yet. */
+export function generateMockDailyPnL(days = 7): DailyPnLPoint[] {
+  const points: DailyPnLPoint[] = [];
+  const today = new Date();
+  const seedPnls = [12.5, -4.2, 18.75, 6.1, -2.8, 22.4, 9.6];
+
+  for (let index = 0; index < days; index += 1) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - (days - 1 - index));
+    const dateStr = date.toISOString().slice(0, 10);
+
+    points.push({
+      date: dateStr,
+      label: dateStr,
+      pnl: seedPnls[index % seedPnls.length],
+    });
+  }
+
+  return points;
+}
+
+export function ensureDailyPnLDisplay(points: DailyPnLPoint[]): DailyPnLPoint[] {
+  if (points.length > 0) {
+    return points;
+  }
+
+  return generateMockDailyPnL();
 }

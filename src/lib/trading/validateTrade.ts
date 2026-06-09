@@ -1,9 +1,6 @@
 import { calculateTradeAmounts } from "@/lib/trading/calculateTrade";
-import { getStockPrice } from "@/lib/market/alphaVantage";
-import {
-  resolveSimulationDate,
-  resolveTradeDate,
-} from "@/lib/market/resolveSimulationDate";
+import { getStockPrice } from "@/lib/market/stockPrices";
+import { resolveTradeDate } from "@/lib/market/resolveSimulationDate";
 import type { AmountMode, SimulationMode, TradeType } from "@/lib/types";
 
 export interface TradeRequestBody {
@@ -89,7 +86,8 @@ export async function validateTradeInput(
 
   try {
     const quote = await getStockPrice(symbol, {
-      simulationDate: resolveSimulationDate(simulationMode, simulatedDate),
+      simulationMode,
+      simulatedDate,
     });
 
     const { shares, totalAmount } = calculateTradeAmounts(

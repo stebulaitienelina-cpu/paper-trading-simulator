@@ -3,6 +3,13 @@
 import { History, LayoutDashboard, Star, TrendingUp } from "lucide-react";
 import { useTrading } from "@/context/TradingContext";
 import type { TabId } from "@/lib/types";
+import {
+  btnTransition,
+  pageBg,
+  tabActive,
+  tabBar,
+  tabInactive,
+} from "@/lib/ui/classes";
 import { cn } from "@/lib/utils";
 import { LastUpdatedIndicator } from "./LastUpdatedIndicator";
 import { TimeTravelMode } from "./TimeTravelMode";
@@ -18,33 +25,32 @@ export function Navigation() {
   const { activeTab, setActiveTab } = useTrading();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/80 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/80">
-      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <header className={`sticky top-0 z-50 border-b border-slate-700 ${pageBg}/95 backdrop-blur-xl`}>
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h1 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+              <h1 className="text-xl font-semibold tracking-tight text-slate-100">
                 Paper Trading Simulator
               </h1>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Live market data via Alpha Vantage
+              <p className="mt-1 text-sm font-normal text-slate-400">
+                Live market data via Finnhub
               </p>
               <LastUpdatedIndicator />
             </div>
             <TimeTravelMode />
           </div>
 
-          <nav className="flex gap-1 rounded-xl border border-zinc-200 bg-zinc-50 p-1 dark:border-zinc-800 dark:bg-zinc-900/50">
+          <nav className={tabBar}>
             {TABS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => setActiveTab(id)}
                 className={cn(
-                  "flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors sm:flex-none sm:justify-start",
-                  activeTab === id
-                    ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-50"
-                    : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100",
+                  "flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium sm:flex-none sm:justify-start",
+                  btnTransition,
+                  activeTab === id ? tabActive : tabInactive,
                 )}
               >
                 <Icon className="h-4 w-4" />

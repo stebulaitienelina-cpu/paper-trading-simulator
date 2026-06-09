@@ -3,6 +3,8 @@
 import { useMemo } from "react";
 import { useTrading } from "@/context/TradingContext";
 import { PortfolioCharts } from "@/components/charts/PortfolioCharts";
+import { AchievementsList } from "@/components/achievements/AchievementsList";
+import { alertWarning, pageStack, sectionTitle } from "@/lib/ui/classes";
 import { PortfolioSummary } from "./PortfolioSummary";
 import { PositionsTable } from "./PositionsTable";
 
@@ -19,28 +21,22 @@ export function PortfolioView() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className={pageStack}>
       <PortfolioSummary cashBalance={portfolio.cashBalance} stockValue={stockValue} />
 
-      {quotesWarning && (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-          {quotesWarning}
-        </p>
-      )}
+      {quotesWarning && <p className={alertWarning}>{quotesWarning}</p>}
 
-      {quotesError && (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-          {quotesError}
-        </p>
-      )}
+      {quotesError && <p className={alertWarning}>{quotesError}</p>}
 
       <PortfolioCharts />
 
+      <AchievementsList />
+
       <section>
-        <h2 className="mb-3 text-base font-semibold text-zinc-900 dark:text-zinc-100">
-          Current Positions
-        </h2>
-        <PositionsTable positions={portfolio.positions} />
+        <h2 className={sectionTitle}>Current Positions</h2>
+        <div className="mt-5">
+          <PositionsTable positions={portfolio.positions} />
+        </div>
       </section>
     </div>
   );
