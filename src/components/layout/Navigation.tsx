@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { History, LayoutDashboard, Loader2, LogOut, Star, TrendingUp } from "lucide-react";
 import { UserDisplay } from "@/components/auth/UserDisplay";
 import { useTrading } from "@/context/TradingContext";
+import { signOut } from "@/lib/auth";
 import type { TabId } from "@/lib/types";
-import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import {
   btnTransition,
   pageBg,
@@ -32,8 +32,7 @@ export function Navigation() {
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
-    const supabase = createBrowserSupabaseClient();
-    await supabase.auth.signOut();
+    await signOut();
     router.replace("/login");
   };
 

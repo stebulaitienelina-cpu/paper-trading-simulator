@@ -2,8 +2,6 @@ import { STARTING_BALANCE } from "@/lib/mockData";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { PortfolioState } from "@/lib/types";
 
-const DEFAULT_PORTFOLIO_ID = "00000000-0000-0000-0000-000000000001";
-
 function toNumber(value: number | string): number {
   return typeof value === "number" ? value : Number(value);
 }
@@ -121,5 +119,3 @@ export async function executeTradeInDatabase(input: {
 
   return data;
 }
-
-export { DEFAULT_PORTFOLIO_ID };

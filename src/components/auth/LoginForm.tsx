@@ -72,6 +72,7 @@ export function LoginForm() {
         message: "Account created. Check your email to confirm, then sign in.",
       });
       setMode("sign-in");
+      setUsername("");
       setIsSubmitting(false);
       return;
     }
@@ -107,6 +108,7 @@ export function LoginForm() {
             type="button"
             onClick={() => {
               setMode("sign-in");
+              setUsername("");
               setFeedback(null);
             }}
             className={cn(
