@@ -55,12 +55,18 @@ export async function signInWithEmail(
 export async function signUpWithEmail(
   email: string,
   password: string,
+  username: string,
 ): Promise<AuthResult<{ user: User | null; session: Session | null }>> {
   try {
     const supabase = createBrowserSupabaseClient();
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
+      options: {
+        data: {
+          username: username.trim(),
+        },
+      },
     });
 
     if (error) {
@@ -108,4 +114,22 @@ export function onAuthStateChange(
   });
 
   return () => subscription.unsubscribe();
+}
+
+export function resolveDisplayUsername(user: User | null | undefined): string {
+  if (!user) {
+    return "Trader";
+  }
+
+  const metadataUsername = user.user_metadata?.username;
+  if (typeof metadataUsername === "string" && metadataUsername.trim()) {
+    return metadataUsername.trim();
+  }
+
+  const emailPrefix = user.email?.split("@")[0]?.trim();
+  if (emailPrefix) {
+    return emailPrefix;
+  }
+
+  return "Trader";
 }

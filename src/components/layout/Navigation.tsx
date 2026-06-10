@@ -1,8 +1,12 @@
 "use client";
 
-import { History, LayoutDashboard, Star, TrendingUp } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { History, LayoutDashboard, Loader2, LogOut, Star, TrendingUp } from "lucide-react";
+import { UserDisplay } from "@/components/auth/UserDisplay";
 import { useTrading } from "@/context/TradingContext";
 import type { TabId } from "@/lib/types";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import {
   btnTransition,
   pageBg,
@@ -22,7 +26,16 @@ const TABS: { id: TabId; label: string; icon: typeof LayoutDashboard }[] = [
 ];
 
 export function Navigation() {
+  const router = useRouter();
   const { activeTab, setActiveTab } = useTrading();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    const supabase = createBrowserSupabaseClient();
+    await supabase.auth.signOut();
+    router.replace("/login");
+  };
 
   return (
     <header className={`sticky top-0 z-50 border-b border-slate-700 ${pageBg}/95 backdrop-blur-xl`}>
@@ -36,6 +49,25 @@ export function Navigation() {
               <p className="mt-1 text-sm font-normal text-slate-400">
                 Live market data via Finnhub
               </p>
+              <div className="mt-1 flex flex-wrap items-center gap-3">
+                <UserDisplay />
+                <button
+                  type="button"
+                  onClick={() => void handleSignOut()}
+                  disabled={isSigningOut}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-2.5 py-1 text-xs font-medium text-slate-400 hover:border-slate-600 hover:bg-slate-700/50 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-60",
+                    btnTransition,
+                  )}
+                >
+                  {isSigningOut ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <LogOut className="h-3.5 w-3.5" />
+                  )}
+                  Sign out
+                </button>
+              </div>
               <LastUpdatedIndicator />
             </div>
             <TimeTravelMode />

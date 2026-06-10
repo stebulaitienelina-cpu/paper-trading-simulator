@@ -21,6 +21,7 @@ export function LoginForm() {
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>("sign-in");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
@@ -57,7 +58,7 @@ export function LoginForm() {
     const result =
       mode === "sign-in"
         ? await signInWithEmail(email, password)
-        : await signUpWithEmail(email, password);
+        : await signUpWithEmail(email, password, username);
 
     if (!result.success) {
       setFeedback({ type: "error", message: result.error });
@@ -139,6 +140,26 @@ export function LoginForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {mode === "sign-up" && (
+            <div>
+              <label htmlFor="username" className="mb-2 block text-sm font-medium text-slate-300">
+                Username
+              </label>
+              <input
+                id="username"
+                type="text"
+                autoComplete="username"
+                required
+                minLength={2}
+                maxLength={32}
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="your_username"
+                className={inputField}
+              />
+            </div>
+          )}
+
           <div>
             <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-300">
               Email
